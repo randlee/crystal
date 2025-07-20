@@ -6,20 +6,20 @@ Crystal now includes comprehensive cross-platform clipboard support for XTerm.js
 
 ## Features
 
-### Cross-Platform Key Bindings
-- **Windows/Linux**: `Ctrl+C` to copy, `Ctrl+V` to paste
-- **macOS**: `Cmd+C` to copy, `Cmd+V` to paste
-- **Automatic platform detection** based on `navigator.platform`
+### Universal Key Bindings
+- **All Platforms**: Both `Ctrl+C` and `Cmd+C` to copy, both `Ctrl+V` and `Cmd+V` to paste
+- **Enhanced UX**: Users can use either modifier key regardless of platform
+- **Seamless Experience**: Works consistently across Windows, macOS, and Linux
 
 ### Copy Functionality
-- **Text Selection**: Select text in any terminal, then press `Ctrl+C` (Windows) or `Cmd+C` (macOS) to copy to clipboard
+- **Text Selection**: Select text in any terminal, then press `Ctrl+C` or `Cmd+C` to copy to clipboard
 - **Both Terminal Types**: Works in both Output terminal (read-only) and Interactive terminal (script mode)
 - **Visual Feedback**: Console logging confirms successful copy operations
 - **Error Handling**: Graceful fallback if clipboard API is unavailable
 
 ### Paste Functionality
 - **Interactive Terminal Only**: Paste is only enabled in the interactive terminal (script mode) for security
-- **Key Binding**: Press `Ctrl+V` (Windows) or `Cmd+V` (macOS) to paste clipboard content
+- **Key Binding**: Press `Ctrl+V` or `Cmd+V` to paste clipboard content
 - **Direct PTY Integration**: Pasted text is sent directly to the PTY session
 - **Error Handling**: Safe clipboard reading with error recovery
 
@@ -65,12 +65,12 @@ Added new E2E test:
 
 1. **Copying Terminal Output**:
    - Select text in any terminal view
-   - Press `Ctrl+C` on Windows/Linux or `Cmd+C` on macOS
+   - Press `Ctrl+C` or `Cmd+C` (both work on all platforms)
    - Text is copied to system clipboard
 
 2. **Pasting into Interactive Terminal**:
    - Switch to Terminal view (interactive mode)
-   - Press `Ctrl+V` on Windows/Linux or `Cmd+V` on macOS
+   - Press `Ctrl+V` or `Cmd+V` (both work on all platforms)
    - Clipboard content is pasted into the terminal
 
 3. **Browser Permissions**:
@@ -187,10 +187,10 @@ const handleKeyDown = (e: KeyboardEvent) => {
    - Check that clipboard contains text content
    - Verify session is not archived
 
-3. **Wrong Key Binding**:
-   - Platform detection should be automatic
-   - Check browser console for platform detection logs
-   - Try both Ctrl and Cmd modifiers if unsure
+3. **Key Binding Issues**:
+   - Both `Ctrl+C/V` and `Cmd+C/V` should work on all platforms
+   - Check browser console for clipboard operation logs
+   - Ensure no other applications are intercepting the key combinations
 
 ### Debug Information
 - Open browser console to see clipboard operation logs

@@ -13,18 +13,18 @@ export const getClipboardModifier = (): 'metaKey' | 'ctrlKey' => {
 
 /**
  * Checks if the current key event is a copy operation (Cmd/Ctrl+C)
+ * Supports both Cmd+C and Ctrl+C on all platforms for better user experience
  */
 export const isCopyKeyEvent = (e: KeyboardEvent): boolean => {
-  const modifier = getClipboardModifier();
-  return e.key === 'c' && e[modifier] && !e.shiftKey;
+  return e.key === 'c' && (e.metaKey || e.ctrlKey) && !e.shiftKey;
 };
 
 /**
  * Checks if the current key event is a paste operation (Cmd/Ctrl+V)
+ * Supports both Cmd+V and Ctrl+V on all platforms for better user experience
  */
 export const isPasteKeyEvent = (e: KeyboardEvent): boolean => {
-  const modifier = getClipboardModifier();
-  return e.key === 'v' && e[modifier] && !e.shiftKey;
+  return e.key === 'v' && (e.metaKey || e.ctrlKey) && !e.shiftKey;
 };
 
 /**

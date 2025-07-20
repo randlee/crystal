@@ -74,7 +74,7 @@ export class ClaudeCodeManager extends EventEmitter {
       let availability;
       
       // Get custom claude path if configured
-      const customClaudePath = this.configManager?.getConfig()?.claudeExecutablePath;
+      const customClaudePathFromConfig = this.configManager?.getConfig()?.claudeExecutablePath;
       
       // Check cache first
       if (this.availabilityCache && 
@@ -83,7 +83,7 @@ export class ClaudeCodeManager extends EventEmitter {
         this.logger?.verbose(`Using cached Claude availability check`);
       } else {
         // Perform fresh check, passing custom path if available
-        availability = await testClaudeCodeAvailability(customClaudePath);
+        availability = await testClaudeCodeAvailability(customClaudePathFromConfig);
         
         // Cache the result
         this.availabilityCache = {
@@ -141,7 +141,7 @@ export class ClaudeCodeManager extends EventEmitter {
       const skipDirTest = os.platform() === 'linux';
       if (!skipDirTest) {
         // Test claude in the target directory, using custom path if available
-        const directoryTest = await testClaudeCodeInDirectory(worktreePath, customClaudePath);
+        const directoryTest = await testClaudeCodeInDirectory(worktreePath, customClaudePathFromConfig);
         if (!directoryTest.success) {
           this.logger?.error(`Claude test failed in directory ${worktreePath}: ${directoryTest.error}`);
           if (directoryTest.output) {
@@ -488,7 +488,7 @@ export class ClaudeCodeManager extends EventEmitter {
       }
 
       let ptyProcess: pty.IPty;
-      let executionStrategy;
+      let executionStrategy: ReturnType<typeof getClaudeExecutionStrategy>;
       
       try {
         // Determine the execution strategy
@@ -753,7 +753,7 @@ export class ClaudeCodeManager extends EventEmitter {
                   '2. The "claude" command is available in your terminal',
                   '3. Your PATH environment variable includes the Claude Code installation directory',
                   '',
-                  `Full command attempted: ${claudeCommand} ${args.join(' ')}`,
+                  `Full command attempted: ${executionStrategy?.command || 'claude'} ${args.join(' ')}`,
                   `Working directory: ${worktreePath}`,
                   `Exit code: ${exitCode}${signal ? `, Signal: ${signal}` : ''}`,
                   ...linuxSpecificInfo,

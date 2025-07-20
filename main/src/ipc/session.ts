@@ -410,10 +410,40 @@ export function registerSessionHandlers(ipcMain: IpcMain, services: AppServices)
 
       // Transform JSON messages to formatted stdout on the fly
       const { formatJsonForOutputEnhanced } = await import('../utils/toolFormatter');
+      const { 
+        detectWindowsFormattingIssues, 
+        formatJsonForOutputEnhancedWindows 
+      } = await import('../utils/windowsTerminalCompat');
+      
+      // Detect if we need Windows compatibility
+      const windowsIssues = detectWindowsFormattingIssues();
+      const needsWindowsCompat = windowsIssues.likelyHasIssues;
+      
+      if (needsWindowsCompat) {
+        console.log(`[IPC] Windows formatting issues detected, using compatibility layer`);
+        console.log(`[IPC] Platform: Windows=${windowsIssues.isWindows}, WSL=${windowsIssues.isWSL}`);
+        if (windowsIssues.recommendedFixes.length > 0) {
+          console.log(`[IPC] Recommended fixes:`, windowsIssues.recommendedFixes);
+        }
+      }
+      
       const transformedOutputs = outputs.map(output => {
         if (output.type === 'json') {
-          // Generate formatted output from JSON
-          const outputText = formatJsonForOutputEnhanced(output.data);
+          // Generate formatted output from JSON using Windows-compatible formatter if needed
+          let outputText: string;
+          
+          if (needsWindowsCompat) {
+            // Use Windows-compatible formatter with appropriate options
+            outputText = formatJsonForOutputEnhancedWindows(output.data, undefined, {
+              disableAnsiCodes: !process.env.COLORTERM && !process.env.TERM,
+              useAsciiSymbols: true,
+              forceWindowsLineEndings: windowsIssues.isWindows
+            });
+          } else {
+            // Use normal formatter
+            outputText = formatJsonForOutputEnhanced(output.data);
+          }
+          
           if (outputText) {
             // Return as stdout for the Output view
             return {

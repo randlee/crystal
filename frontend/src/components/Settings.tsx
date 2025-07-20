@@ -17,6 +17,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
   const [anthropicApiKey, setAnthropicApiKey] = useState('');
   const [globalSystemPrompt, setGlobalSystemPrompt] = useState('');
   const [claudeExecutablePath, setClaudeExecutablePath] = useState('');
+  const [claudeExecutionMode, setClaudeExecutionMode] = useState<'auto' | 'native' | 'wsl' | 'custom'>('auto');
   const [defaultPermissionMode, setDefaultPermissionMode] = useState<'approve' | 'ignore'>('ignore');
   const [autoCheckUpdates, setAutoCheckUpdates] = useState(true);
   const [notificationSettings, setNotificationSettings] = useState({
@@ -47,6 +48,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
       setAnthropicApiKey(data.anthropicApiKey || '');
       setGlobalSystemPrompt(data.systemPromptAppend || '');
       setClaudeExecutablePath(data.claudeExecutablePath || '');
+      setClaudeExecutionMode(data.claudeExecutionMode || 'auto');
       setDefaultPermissionMode(data.defaultPermissionMode || 'ignore');
       setAutoCheckUpdates(data.autoCheckUpdates !== false); // Default to true
       
@@ -72,6 +74,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
         anthropicApiKey, 
         systemPromptAppend: globalSystemPrompt, 
         claudeExecutablePath,
+        claudeExecutionMode,
         defaultPermissionMode,
         autoCheckUpdates,
         notifications: notificationSettings
@@ -304,6 +307,29 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Full path to the claude executable. Leave empty to use the claude command from PATH. This is useful if Claude is installed in a non-standard location.
             </p>
+          </div>
+
+          <div>
+            <label htmlFor="claudeExecutionMode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Claude Execution Mode
+            </label>
+            <select
+              id="claudeExecutionMode"
+              value={claudeExecutionMode}
+              onChange={(e) => setClaudeExecutionMode(e.target.value as 'auto' | 'native' | 'wsl' | 'custom')}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+            >
+              <option value="auto">Auto-detect (Recommended)</option>
+              <option value="native">Native Windows (Future)</option>
+              <option value="wsl">Force WSL on Windows</option>
+              <option value="custom">Custom Command</option>
+            </select>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-1">
+              <p><strong>Auto-detect:</strong> Try native first, fall back to WSL on Windows if needed</p>
+              <p><strong>Native:</strong> Direct execution (for future Windows support)</p>
+              <p><strong>WSL:</strong> Always use WSL on Windows (current requirement)</p>
+              <p><strong>Custom:</strong> Use the exact path specified above</p>
+            </div>
           </div>
 
           <div>

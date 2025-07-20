@@ -7,6 +7,8 @@ export interface AppConfig {
   runScript?: string[];
   // Custom claude executable path (for when it's not in PATH)
   claudeExecutablePath?: string;
+  // Claude execution strategy for Windows compatibility
+  claudeExecutionMode?: 'auto' | 'native' | 'wsl' | 'custom';
   // Permission mode for all sessions
   defaultPermissionMode?: 'approve' | 'ignore';
   // Default model for new sessions
@@ -32,6 +34,7 @@ export interface UpdateConfigRequest {
   verbose?: boolean;
   anthropicApiKey?: string;
   claudeExecutablePath?: string;
+  claudeExecutionMode?: 'auto' | 'native' | 'wsl' | 'custom';
   systemPromptAppend?: string;
   defaultPermissionMode?: 'approve' | 'ignore';
   defaultModel?: string;

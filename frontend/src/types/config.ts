@@ -5,6 +5,7 @@ export interface AppConfig {
   systemPromptAppend?: string;
   runScript?: string[];
   claudeExecutablePath?: string;
+  claudeExecutionMode?: 'auto' | 'native' | 'wsl' | 'custom';
   defaultPermissionMode?: 'approve' | 'ignore';
   autoCheckUpdates?: boolean;
   stravuApiKey?: string;

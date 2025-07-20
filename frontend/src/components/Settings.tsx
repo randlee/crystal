@@ -19,6 +19,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
   const [claudeExecutablePath, setClaudeExecutablePath] = useState('');
   const [claudeExecutionMode, setClaudeExecutionMode] = useState<'auto' | 'native' | 'wsl' | 'custom'>('auto');
   const [defaultPermissionMode, setDefaultPermissionMode] = useState<'approve' | 'ignore'>('ignore');
+  const [platform, setPlatform] = useState<string>('unknown');
   const [autoCheckUpdates, setAutoCheckUpdates] = useState(true);
   const [notificationSettings, setNotificationSettings] = useState({
     enabled: true,
@@ -34,7 +35,10 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
 
   useEffect(() => {
     if (isOpen) {
-      fetchConfig();
+      // Load platform first, then config
+      fetchPlatform().then(() => {
+        fetchConfig();
+      });
     }
   }, [isOpen]);
 
@@ -48,7 +52,12 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
       setAnthropicApiKey(data.anthropicApiKey || '');
       setGlobalSystemPrompt(data.systemPromptAppend || '');
       setClaudeExecutablePath(data.claudeExecutablePath || '');
-      setClaudeExecutionMode(data.claudeExecutionMode || 'auto');
+      // Validate execution mode based on platform
+      let executionMode = data.claudeExecutionMode || 'auto';
+      if (platform !== 'win32' && (executionMode === 'wsl' || executionMode === 'native')) {
+        executionMode = 'auto'; // Reset to auto for non-Windows platforms
+      }
+      setClaudeExecutionMode(executionMode);
       setDefaultPermissionMode(data.defaultPermissionMode || 'ignore');
       setAutoCheckUpdates(data.autoCheckUpdates !== false); // Default to true
       
@@ -60,6 +69,16 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
       }
     } catch (err) {
       setError('Failed to load configuration');
+    }
+  };
+
+  const fetchPlatform = async () => {
+    try {
+      const platformInfo = await window.electronAPI.getPlatform();
+      setPlatform(platformInfo);
+    } catch (err) {
+      console.warn('Failed to get platform info:', err);
+      setPlatform('unknown');
     }
   };
 
@@ -316,18 +335,25 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
             <select
               id="claudeExecutionMode"
               value={claudeExecutionMode}
-              onChange={(e) => setClaudeExecutionMode(e.target.value as 'auto' | 'native' | 'wsl' | 'custom')}
+              onChange={(e) => {
+                const newMode = e.target.value as 'auto' | 'native' | 'wsl' | 'custom';
+                // Prevent selecting Windows-only modes on non-Windows platforms
+                if (platform !== 'win32' && (newMode === 'wsl' || newMode === 'native')) {
+                  return; // Don't allow the change
+                }
+                setClaudeExecutionMode(newMode);
+              }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
             >
               <option value="auto">Auto-detect (Recommended)</option>
-              <option value="native">Native Windows (Future)</option>
-              <option value="wsl">Force WSL on Windows</option>
+              {platform === 'win32' && <option value="native">Native Windows (Future)</option>}
+              {platform === 'win32' && <option value="wsl">Force WSL on Windows</option>}
               <option value="custom">Custom Command</option>
             </select>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-1">
-              <p><strong>Auto-detect:</strong> Try native first, fall back to WSL on Windows if needed</p>
-              <p><strong>Native:</strong> Direct execution (for future Windows support)</p>
-              <p><strong>WSL:</strong> Always use WSL on Windows (current requirement)</p>
+              <p><strong>Auto-detect:</strong> {platform === 'win32' ? 'Try native first, fall back to WSL if needed' : 'Use native execution'}</p>
+              {platform === 'win32' && <p><strong>Native:</strong> Direct execution (for future Windows support)</p>}
+              {platform === 'win32' && <p><strong>WSL:</strong> Always use WSL on Windows (current requirement)</p>}
               <p><strong>Custom:</strong> Use the exact path specified above</p>
             </div>
           </div>

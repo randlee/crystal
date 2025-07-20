@@ -77,6 +77,14 @@ When everything looks good:
   - Open the DMG file and drag Crystal to your Applications folder
   - On first launch, you may need to right-click and select "Open" due to macOS security settings
 
+- **Windows**: Download the installer or portable version from the [latest release](https://github.com/stravu/crystal/releases/latest)
+  - **Installer**: `Crystal-{version}-windows-x64.exe` - Full installation with shortcuts and auto-updates
+  - **Portable**: `Crystal-{version}-windows-portable.exe` - Run directly, no installation required
+  - **Installation Steps**:
+    1. Download the appropriate version for your system
+    2. **Installer version**: Run the `.exe` and follow the setup wizard
+    3. **Portable version**: Extract and run directly from any folder
+    4. The app will be available from the Start Menu or Desktop (installer) or run the executable directly (portable)
 
 ## Building from Source
 
@@ -97,6 +105,17 @@ pnpm run electron-dev
 ```bash
 # Build for macOS
 pnpm build:mac
+
+# Build for Linux
+pnpm build:linux
+
+# Build for Windows
+pnpm build:win
+
+# Build for all platforms (requires appropriate OS)
+pnpm build:mac    # macOS only
+pnpm build:linux  # Linux/macOS/Windows
+pnpm build:win    # Windows/macOS/Linux
 ```
 
 

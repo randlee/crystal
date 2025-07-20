@@ -6,6 +6,14 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { Session, GitCommands, GitErrorDetails } from '../types/session';
 import { createVisibilityAwareInterval } from '../utils/performanceUtils';
+import { createCopyHandler, createPasteHandler } from '../utils/clipboard';
+
+// Extend Terminal type to include our clipboard cleanup function
+declare module '@xterm/xterm' {
+  interface Terminal {
+    _clipboardCleanup?: () => void;
+  }
+}
 
 export type ViewMode = 'output' | 'messages' | 'changes' | 'terminal' | 'editor';
 
@@ -557,7 +565,49 @@ export const useSessionView = (
     instanceRef.current = term;
     fitAddonRef.current = addon;
     
-    console.log(`[initTerminal] Terminal initialized successfully`);
+    // Add cross-platform clipboard functionality
+    const setupClipboardHandlers = () => {
+      const terminalElement = termRef.current;
+      if (!terminalElement) return;
+
+      // Create copy handler
+      const handleCopy = createCopyHandler(() => {
+        // Copy feedback is handled by the utility
+      });
+
+      // Create paste handler (only for script terminal)
+      const handlePaste = createPasteHandler((text: string) => {
+        if (activeSession && !activeSession.archived) {
+          API.sessions.sendTerminalInput(activeSession.id, text).catch(error => {
+            console.error('Failed to send pasted text:', error);
+          });
+        }
+      });
+
+      // Wrapper functions to provide terminal selection
+      const copyEventHandler = (e: KeyboardEvent) => {
+        handleCopy(e, () => term.getSelection());
+      };
+
+      // Add event listeners
+      terminalElement.addEventListener('keydown', copyEventHandler);
+      if (isScript) {
+        terminalElement.addEventListener('keydown', handlePaste);
+      }
+
+      // Store cleanup function
+      term._clipboardCleanup = () => {
+        terminalElement.removeEventListener('keydown', copyEventHandler);
+        if (isScript) {
+          terminalElement.removeEventListener('keydown', handlePaste);
+        }
+      };
+    };
+
+    // Setup clipboard after DOM is ready
+    setTimeout(setupClipboardHandlers, 100);
+    
+    console.log(`[initTerminal] Terminal initialized successfully with clipboard support`);
 
     if (isScript) {
         // Clear any existing content
@@ -849,6 +899,13 @@ export const useSessionView = (
       }
       if (outputLoadTimeoutRef.current) {
         clearTimeout(outputLoadTimeoutRef.current);
+      }
+      // Cleanup clipboard handlers before disposing terminals
+      if (terminalInstance.current?._clipboardCleanup) {
+        terminalInstance.current._clipboardCleanup();
+      }
+      if (scriptTerminalInstance.current?._clipboardCleanup) {
+        scriptTerminalInstance.current._clipboardCleanup();
       }
       terminalInstance.current?.dispose();
       terminalInstance.current = null;

@@ -11,8 +11,8 @@ jobs:
   build:
     strategy:
       matrix:
-        # Build both platforms for validation, but use different commands for speed
-        os: [macos-latest, ubuntu-latest]
+        # Build all platforms for validation, but use different commands for speed
+        os: [macos-latest, ubuntu-latest, windows-latest]
         include:
           - os: macos-latest
             build_cmd: build:mac:ci
@@ -24,6 +24,13 @@ jobs:
             artifact_path: |
               dist-electron/*.deb
               dist-electron/*.AppImage
+          - os: windows-latest
+            build_cmd: build:win:ci
+            artifact_name: crystal-windows
+            artifact_path: |
+              dist-electron/*.exe
+              dist-electron/*.zip
+              dist-electron/latest.yml
     
     runs-on: ${{ matrix.os }}
     
@@ -88,7 +95,8 @@ jobs:
       run: pnpm install
 
     # Build frontend and main process in parallel for faster builds (skip if cached)
-    - name: Build frontend and main process
+    - name: Build frontend and main process (Unix)
+      if: runner.os != 'Windows'
       run: |
         # Check if builds exist from cache
         if [ ! -d "frontend/dist" ] || [ ! -d "main/dist" ]; then
@@ -101,7 +109,23 @@ jobs:
           echo "Using cached frontend and main builds"
         fi
 
-    - name: Rebuild native modules (if needed)
+    - name: Build frontend and main process (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        # Check if builds exist from cache
+        if (!(Test-Path "frontend/dist") -or !(Test-Path "main/dist")) {
+          Write-Host "Building frontend and main process..."
+          # Build both frontend and main process concurrently
+          Start-Job -ScriptBlock { pnpm run build:frontend }
+          Start-Job -ScriptBlock { pnpm run build:main }
+          Get-Job | Wait-Job | Remove-Job
+        } else {
+          Write-Host "Using cached frontend and main builds"
+        }
+      shell: pwsh
+
+    - name: Rebuild native modules (if needed) (Unix)
+      if: runner.os != 'Windows'
       run: |
         # Only rebuild if native modules cache missed or build files changed
         if [ ! -f "main/node_modules/.bin/electron-rebuild" ] || [ ! -f "main/build/Release/better_sqlite3.node" ]; then
@@ -110,6 +134,18 @@ jobs:
         else
           echo "Using cached native modules"
         fi
+
+    - name: Rebuild native modules (if needed) (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        # Only rebuild if native modules cache missed or build files changed
+        if (!(Test-Path "main/node_modules/.bin/electron-rebuild.cmd") -or !(Test-Path "main/build/Release/better_sqlite3.node")) {
+          Write-Host "Rebuilding native modules..."
+          pnpm run electron:rebuild
+        } else {
+          Write-Host "Using cached native modules"
+        }
+      shell: pwsh
 
     - name: Generate NOTICES file
       run: pnpm run generate-notices
@@ -129,8 +165,14 @@ jobs:
         # Only enable signing when certificates are available
         CSC_IDENTITY_AUTO_DISCOVERY: ${{ matrix.os == 'macos-latest' && 'true' || 'false' }}
 
-    - name: List build artifacts
+    - name: List build artifacts (Unix)
+      if: runner.os != 'Windows'
       run: ls -la dist-electron/
+
+    - name: List build artifacts (Windows)
+      if: runner.os == 'Windows'
+      run: Get-ChildItem -Path dist-electron/ -Force
+      shell: pwsh
 
     # Skip Flatpak build for CI speed - saves 4+ minutes
     # Flatpak is built separately in release workflow
